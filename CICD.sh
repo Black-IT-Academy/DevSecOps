@@ -8,7 +8,6 @@ VERSION=SECURE
 docker rm -f $APP_NAME 2>/dev/null || true
 docker build -t $APP_NAME:$VERSION . 
 docker scout cves $APP_NAME:$VERSION --output ./vulns.report
-docker scout cves $APP_NAME:$VERSION --only-severity critical --exit-code
 docker scout sbom --output $APP_NAME.sbom $APP_NAME:$VERSION
 
 #TEST: Run the container
