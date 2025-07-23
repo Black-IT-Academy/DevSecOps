@@ -1,0 +1,70 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches:
+      - '*'  # Trigger on push to any branch
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  sonarqube:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Shallow clones should be disabled for better analysis
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+      # Only run if package.json exists
+      if: hashFiles('package.json') != ''
+
+    - name: Install dependencies
+      run: npm ci
+      # Only run if package.json exists
+      if: hashFiles('package.json') != ''
+
+    - name: Run tests with coverage
+      run: |
+        if [ -f "package.json" ] && grep -q '"test"' package.json; then
+          npm test -- --coverage --watchAll=false
+        else
+          echo "No test script found in package.json, skipping tests"
+        fi
+      continue-on-error: true
+
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v2.0.2
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+    - name: SonarQube Quality Gate Check
+      uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      
+
+
+
+    # Optional: Fail the workflow if Quality Gate fails
+    - name: "Quality Gate Status"
+      run: |
+        echo "Quality Gate Status: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+        if [[ "${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}" == "FAILED" ]]; then
+          echo "Quality gate failed"
+          exit 1
+        fi
