@@ -1,3 +1,5 @@
+Do we need this Docker Scout information, please update
+
 
 ```
 docker scout cves $APP_NAME:$VERSION --output ./vulns.report
