@@ -1,39 +1,68 @@
-# SonarQube Configuration for Vanilla HTML/CSS/JS Project
+name: SonarQube Analysis
 
-# Project identification - Use your existing project key from SonarCloud
-sonar.projectKey=bita
-sonar.projectName=DevSecOps
-sonar.projectVersion=1.0
+on:
+  push:
+    branches:
+      - '*'  # Trigger on push to any branch
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
 
-# Source code location
-sonar.sources=.
-sonar.sourceEncoding=UTF-8
+jobs:
+  sonarqube:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Shallow clones should be disabled for better analysis
+        fetch-depth: 0
 
-# Files to exclude from analysis
-sonar.exclusions=**/node_modules/**,**/vendor/**,**/*.min.js,**/*.min.css,**/dist/**,**/build/**,**/.git/**,**/.github/**,**/coverage/**
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+      # Only run if package.json exists
+      if: hashFiles('package.json') != ''
 
-# Files to include specifically for JavaScript analysis
-sonar.inclusions=**/*.js,**/*.html,**/*.css
+    - name: Install dependencies
+      run: npm ci
+      # Only run if package.json exists
+      if: hashFiles('package.json') != ''
 
-# Language-specific settings
-sonar.javascript.file.suffixes=.js,.jsx
-sonar.html.file.suffixes=.html,.htm
-sonar.css.file.suffixes=.css,.scss,.sass,.less
+    - name: Run tests with coverage
+      run: |
+        if [ -f "package.json" ] && grep -q '"test"' package.json; then
+          npm test -- --coverage --watchAll=false
+        else
+          echo "No test script found in package.json, skipping tests"
+        fi
+      continue-on-error: true
 
-# Test coverage (if you have tests)
-# sonar.javascript.lcov.reportPaths=coverage/lcov.info
-# sonar.testExecutionReportPaths=coverage/test-report.xml
+    - name: SonarQube Scan
+      uses: sonarqube-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-# Quality gate settings
-sonar.qualitygate.wait=true
+    - name: SonarQube Quality Gate check
+      id: sonarqube-quality-gate-check
+      uses: sonarqube-github-action@master
+      timeout-minutes: 5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-# Additional analysis parameters
-sonar.analysis.mode=publish
-sonar.scm.provider=git
-
-# Disable rules that might not be relevant for simple HTML/CSS/JS projects
-sonar.issue.ignore.multicriteria=e1,e2
-sonar.issue.ignore.multicriteria.e1.ruleKey=Web:ImgWithoutAltCheck
-sonar.issue.ignore.multicriteria.e1.resourceKey=**/*.html
-sonar.issue.ignore.multicriteria.e2.ruleKey=css:S4658
-sonar.issue.ignore.multicriteria.e2.resourceKey=**/*.css
+    # Optional: Fail the workflow if Quality Gate fails
+    - name: "Quality Gate Status"
+      run: |
+        echo "Quality Gate Status: ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+        if [[ "${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}" == "FAILED" ]]; then
+          echo "Quality gate failed"
+          exit 1
+        fi
