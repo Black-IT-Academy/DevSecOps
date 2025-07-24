@@ -22,14 +22,6 @@ jobs:
         # Shallow clones should be disabled for better analysis
         fetch-depth: 0
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-      # Only run if package.json exists
-      if: hashFiles('package.json') != ''
-
     - name: Install dependencies
       run: npm ci
       # Only run if package.json exists
