@@ -124,7 +124,3 @@ By working with this repository, you'll gain hands-on experience with:
 - CI/CD pipeline configuration and management
 - Code quality gates and automated testing
 - Industry-standard DevSecOps practices
-
----
-
-**Ready to start your DevSecOps journey?** Fork this repo and make your first contribution! 🚀
