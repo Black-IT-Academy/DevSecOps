@@ -28,8 +28,6 @@ This repository serves as a practical learning environment for Black IT Academy 
 - **Branch Types**: 
   - `main` - Production-ready code
   - `dev` - Development integration branch
-  - `feature/*` - New feature development
-  - `hotfix/*` - Critical bug fixes
 - **PR Approval Process**: Simulates real-world development environment with required reviews
 
 ## 🚀 How to Use
